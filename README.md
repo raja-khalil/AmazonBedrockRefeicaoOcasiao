@@ -1,4 +1,4 @@
-# Amazon Bedrock Refeição por Ocasiao
+# Amazon Bedrock Refeição por Ocasião
 Desafio de Código: Aplicação com AWS Step Functions e Amazon Bedrock
 Este repositório contém a solução para o desafio do bootcamp "Nexa - Engenharia de Prompts na AWS com Claude" realizado na DIO. O desafio consistiu em criar uma aplicação utilizando AWS Step Functions e Amazon Bedrock para fornecer recomendações personalizadas de alimentação com base nas preferências e necessidades dos usuários.
 
