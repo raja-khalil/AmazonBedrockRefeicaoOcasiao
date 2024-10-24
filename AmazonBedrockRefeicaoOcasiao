@@ -1,0 +1,164 @@
+{
+  "Comment": "Interação com o usuário para sugestões de alimentação usando somente Amazon Bedrock",
+  "StartAt": "IdentificarUsuario",
+  "States": {
+    "IdentificarUsuario": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "bedrock-model",
+        "Body": {
+          "text": "Identificar localização e dados do usuário"
+        },
+        "ContentType": "application/json"
+      },
+      "ResultPath": "$.usuario",
+      "Next": "IdentificarNecessidade"
+    },
+    "IdentificarNecessidade": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "bedrock-model",
+        "Body": {
+          "text.$": "Estados de entrada para identificar a necessidade do usuário: ${.usuario}"
+        },
+        "ContentType": "application/json"
+      },
+      "ResultPath": "$.necessidade",
+      "Next": "EscolherOpcao"
+    },
+    "EscolherOpcao": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.necessidade.opcao",
+          "StringEquals": "faça você mesmo",
+          "Next": "OpcaoFacaVoceMesmo"
+        },
+        {
+          "Variable": "$.necessidade.opcao",
+          "StringEquals": "restaurante",
+          "Next": "OpcaoRestaurante"
+        },
+        {
+          "Variable": "$.necessidade.opcao",
+          "StringEquals": "delivery",
+          "Next": "OpcaoDelivery"
+        }
+      ],
+      "Default": "OpcaoNaoReconhecida"
+    },
+    "OpcaoFacaVoceMesmo": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "IndicarListaCompras",
+          "States": {
+            "IndicarListaCompras": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::bedrock:invokeModel",
+              "Parameters": {
+                "ModelId": "bedrock-model",
+                "Body": {
+                  "text": "Forneça a lista de compras para a opção selecionada"
+                },
+                "ContentType": "application/json"
+              },
+              "ResultPath": "$.listaCompras",
+              "Next": "OndeComprar"
+            },
+            "OndeComprar": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::bedrock:invokeModel",
+              "Parameters": {
+                "ModelId": "bedrock-model",
+                "Body": {
+                  "text": "Sugestão de locais para comprar os ingredientes"
+                },
+                "ContentType": "application/json"
+              },
+              "ResultPath": "$.ondeComprar",
+              "Next": "Receita"
+            },
+            "Receita": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::bedrock:invokeModel",
+              "Parameters": {
+                "ModelId": "bedrock-model",
+                "Body": {
+                  "text": "Receita para a opção selecionada"
+                },
+                "ContentType": "application/json"
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "TipoEmpratamento",
+          "States": {
+            "TipoEmpratamento": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::bedrock:invokeModel",
+              "Parameters": {
+                "ModelId": "bedrock-model",
+                "Body": {
+                  "text": "Sugestão de empratamento"
+                },
+                "ContentType": "application/json"
+              },
+              "ResultPath": "$.tipoEmpratamento",
+              "Next": "OpcoesQueCombinam"
+            },
+            "OpcoesQueCombinam": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::bedrock:invokeModel",
+              "Parameters": {
+                "ModelId": "bedrock-model",
+                "Body": {
+                  "text": "Opções que combinam com o prato selecionado"
+                },
+                "ContentType": "application/json"
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "Next": "Finalizar"
+    },
+    "OpcaoRestaurante": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "bedrock-model",
+        "Body": {
+          "text": "Forneça informações sobre o restaurante"
+        },
+        "ContentType": "application/json"
+      },
+      "Next": "Finalizar"
+    },
+    "OpcaoDelivery": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "bedrock-model",
+        "Body": {
+          "text": "Informações sobre como pedir o delivery"
+        },
+        "ContentType": "application/json"
+      },
+      "Next": "Finalizar"
+    },
+    "OpcaoNaoReconhecida": {
+      "Type": "Fail",
+      "Error": "Opção não reconhecida",
+      "Cause": "A opção fornecida pelo usuário não é válida."
+    },
+    "Finalizar": {
+      "Type": "Succeed"
+    }
+  }
+}
